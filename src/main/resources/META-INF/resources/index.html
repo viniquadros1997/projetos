@@ -1,0 +1,144 @@
+<!doctype html>
+<html ng-app="appPlayList">
+<head>
+  <title>Listas de Reprodução com AngularJS</title>
+  <meta charset="utf-8">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="lib/toastr.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+<div class="container mx-auto p-4" ng-controller="PlaylistController">
+  <div class="mb-4 flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-center text-blue-600">Listas de Reprodução</h1>
+    <button class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded" ng-click="refreshPlaylists()">
+      Atualizar
+    </button>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white shadow rounded-lg">
+      <thead class="bg-blue-600 text-white">
+      <tr>
+        <th class="w-1/4 py-3 px-4">Nome</th>
+        <th class="w-1/4 py-3 px-4">Descrição</th>
+        <th class="w-1/2 py-3 px-4">Músicas</th>
+        <th class="py-3 px-4">Ações</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr ng-repeat="playlist in playlists" class="border-b">
+        <td class="py-3 px-4">{{ playlist.nome }}</td>
+        <td class="py-3 px-4">{{ playlist.descricao }}</td>
+        <td class="py-3 px-4">
+          <div class="mt-2">
+            <table class="min-w-full bg-gray-100 shadow rounded-lg">
+              <thead class="bg-gray-600 text-white">
+              <tr>
+                <th class="py-2 px-4">Título</th>
+                <th class="py-2 px-4">Artista</th>
+                <th class="py-2 px-4">Álbum</th>
+                <th class="py-2 px-4">Ano</th>
+                <th class="py-2 px-4">Gênero</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr ng-repeat="musica in playlist.musicas" class="border-b">
+                <td class="py-2 px-4">{{ musica.titulo }}</td>
+                <td class="py-2 px-4">{{ musica.artista }}</td>
+                <td class="py-2 px-4">{{ musica.album }}</td>
+                <td class="py-2 px-4">{{ musica.ano }}</td>
+                <td class="py-2 px-4">{{ musica.genero }}</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+        <td class="py-3 px-4">
+          <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded" ng-click="deletePlaylist($index)">
+            Deletar
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <form class="mt-4 p-4 bg-white shadow rounded-lg" name="validarValoresPreenchidos">
+    <div class="mb-4">
+      <input type="text" ng-model="playlist.nome" placeholder="Nome da Lista" required class="w-full p-2 border rounded shadow">
+    </div>
+    <div class="mb-4">
+      <input type="text" ng-model="playlist.descricao" placeholder="Descrição" required class="w-full p-2 border rounded shadow">
+    </div>
+    <button ng-hide="edit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded" ng-disabled="validarValoresPreenchidos.$invalid" ng-click="adicionaPlaylist()">
+      Adicionar
+    </button>
+    <button ng-show="edit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded" ng-disabled="validarValoresPreenchidos.$invalid" ng-click="applyChanges()">
+      Salvar
+    </button>
+  </form>
+</div>
+<script src="lib/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+<script src="lib/toastr.min.js"></script>
+<script>
+  angular.module('appPlayList', []);
+  angular.module('appPlayList').controller('PlaylistController', function($scope, $http) {
+
+    $scope.loadPlaylists = function() {
+      $scope.playlists = [];
+      $scope.edit = false;
+      $scope.playlist = {};
+      $scope.playlist.musicas = [];
+
+      $scope.playlists.push({
+        nome: 'Playlist 1',
+        descricao: 'Descrição da Playlist 1',
+        musicas: [
+          { titulo: 'Música 1', artista: 'Artista 1', album: 'Album 1', ano: 'Ano 2023', genero: 'SERTANEJO' },
+          { titulo: 'Música 2', artista: 'Artista 2', album: 'Album 2', ano: 'Ano 2023', genero: 'SERTANEJO' }
+        ]
+      });
+
+      $scope.playlists.push({
+        nome: 'Playlist 2',
+        descricao: 'Descrição da Playlist 2',
+        musicas: [
+          { titulo: 'Música 3', artista: 'Artista 3', album: 'Album 3', ano: 'Ano 2023', genero: 'SERTANEJO' },
+          { titulo: 'Música 4', artista: 'Artista 4', album: 'Album 4', ano: 'Ano 2023', genero: 'SERTANEJO' }
+        ]
+      });
+
+      $scope.getAllPlaylists = function() {
+        $http.get('http://localhost:8080/lists')
+                .then(function(response) {
+                  $scope.playlists = response.data;
+                  $scope.playlists.forEach(playlist => playlist.showMusicas = false);
+                }).catch(function(error) {});
+      };
+    };
+
+    $scope.adicionaPlaylist = function() {
+      $http.post('https://localhost:8080/lists', $scope.playlist)
+              .then(function(response) {
+                response.data.showMusicas = false;
+                $scope.playlists.push(response.data);
+                $scope.playlist = {};
+                $scope.playlist.musicas = [];
+              }).catch(function(error) {});
+    };
+
+    $scope.deletePlaylist = function(index) {
+      var listName = $scope.playlists[index].nome;
+      $http.delete('https://localhost:8080/lists', listName)
+              .then(function(response) {
+                $scope.playlists.splice(index, 1);}).catch(function(error) {
+      });
+    };
+
+    $scope.loadPlaylists();
+
+  });
+</script>
+</body>
+</html>
